@@ -1,4 +1,9 @@
 class DOMHelper {
+	static clearEventListeners(element) {
+		const clonedElement = element.cloneNode(true);
+		element.replaceWith(clonedElement);
+		return clonedElement;
+	}
 	static moveElement(elementId, newDestinationSelector) {
 		const element = document.getElementById(elementId);
 		const destinationElement = document.querySelector(newDestinationSelector);
@@ -11,22 +16,27 @@ class Tooltip {
 }
 
 class ProjectItem {
-	constructor(id, updateProjectListsFunction) {
+	constructor(id, updateProjectListsFunction, type) {
 		this.id = id;
 		this.updateProjectListsHandler = updateProjectListsFunction;
 		this.connectMoreInfoButton();
-		this.connectSwitchButton();
+		this.connectSwitchButton(type);
 	}
 	
 	connectMoreInfoButton() {}
 
-	connectSwitchButton() {
+	connectSwitchButton(type) {
 		const projectItemElement = document.getElementById(this.id);
-		const switchBtn = projectItemElement.querySelector('button:last-of-type');
+		let switchBtn = projectItemElement.querySelector('button:last-of-type');
+		switchBtn = DOMHelper.clearEventListeners(switchBtn);
+		switchBtn.textContent = type === 'active' ? 'Finish' : 'Activate';
 		switchBtn.addEventListener('click', this.updateProjectListsHandler.bind(null, this.id));
 	}
 
-
+	update(updateProjectListFn, type) {
+		this.updateProjectListsHandler = updateProjectListFn;
+		this.connectSwitchButton(type);
+	}
 }
 
 class ProjectList {
@@ -35,7 +45,7 @@ class ProjectList {
 		this.type = type;
 		const prjItems = document.querySelectorAll(`#${type}-projects li`);
 		for (let prjItem of prjItems) {
-			this.projects.push(new ProjectItem(prjItem.id, this.switchProject.bind(this)))
+			this.projects.push(new ProjectItem(prjItem.id, this.switchProject.bind(this), this.type))
 		}
 		console.log(this.projects);
 	}
@@ -47,6 +57,7 @@ class ProjectList {
 	addProject(project) {
 		this.projects.push(project);
 		DOMHelper.moveElement(project.id, `#${this.type}-projects ul`);
+		project.update(this.switchProject.bind(this), this.type);
 	}
 
 	switchProject(projectId) {
